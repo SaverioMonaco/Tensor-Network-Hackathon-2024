@@ -6,6 +6,30 @@ from typing import List, Literal
 import os 
 
 def read(file : str):
+    """Read the information from a single Knapsack problem file
+
+    The file is structured as follows:
+    row | 
+    0   | Number of total x  |                        |
+    1   | index (0)          | profit of the first x  | weight of the first x 
+    2   | index (1)          | profit of the second x | weight of the second x 
+    ... |                    |                        | 
+    [-1]| Total capacity     |                        | 
+
+    Parameters
+    ----------
+    file : str
+        File to read the problem from the txt file
+
+    Returns
+    -------
+    int
+        Max Capacity C
+    List[int] 
+        List of profits p
+    List[int]
+        List of weights w
+    """
     # Loading an instance from the KP instances folder
     profits = []
     weights = []
@@ -21,7 +45,21 @@ def read(file : str):
 
     return max_capacity, profits, weights
 
-def load(dataset : Literal['small', 'medium', 'large'] = 'small', path : str = '../kp_instances'): 
+def load(dataset : Literal['small', 'medium', 'large'] = 'small', path : str = '../kp_instances'):
+    """Load multiple problems from a folder into an array of dictionaries (one for each problem)
+
+    Parameters
+    ----------
+    dataset : Literal['small', 'medium', 'large']
+        Name of the folder 
+    path : str
+        Name of the path containing the folders
+
+    Returns
+    -------
+    List[dict]
+        Set containing all the problems        
+    """ 
     full_path = f'{path}/{dataset}'
     files = os.listdir(full_path)
 
