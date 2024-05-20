@@ -19,6 +19,7 @@ def get_Q(weights : List[int], profits : List[int], C : int, l : float):
 
     Q = np.zeros((nq, nq))
 
+    K = (C + 1 - 2**M)
     # Diagonal terms
     for n in range(N):
         Q[n,n] += l*(weights[n]**2) - profits[n]
@@ -26,7 +27,7 @@ def get_Q(weights : List[int], profits : List[int], C : int, l : float):
     for m in range(M):
         Q[N+m, N+m] += 2**(2*m)
 
-    Q[N+M, N+M] += l*(C + 1 + 2**M)**2
+    Q[N+M, N+M] += l*K**2
 
     # Off diagonal terms
     # xj xj' 
@@ -46,11 +47,11 @@ def get_Q(weights : List[int], profits : List[int], C : int, l : float):
             Q[N+a, n]  = Q[n, N+a]
     # xj bM
     for n in range(N):
-        Q[n, N+M] += - 2*l*(C + 1 - 2**M) * weights[n]
+        Q[n, N+M] += - 2*l*K * weights[n]
         Q[n, N+M]  = Q[N+M, n]
     # ba bM
     for a in range(M):
-        Q[N+a, N+M] += 2*l*(C + 1 - 2**M) * (2**a)
+        Q[N+a, N+M] += 2*l*K * (2**a)
         Q[N+M, N+a]  = Q[N+a, N+M]
 
     return Q
