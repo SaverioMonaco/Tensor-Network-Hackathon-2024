@@ -14,8 +14,6 @@ def toBitstrings(vector, bits:None | int =None):
 
     """
 
-    assert len(vector) > 0
-
     if bits is None:
         bits = np.ceil(np.log2(np.max(vector))).astype(int)
     else:
@@ -23,25 +21,29 @@ def toBitstrings(vector, bits:None | int =None):
         assert bits >= np.ceil(np.log2(np.max(vector)))
 
     result = np.array(vector)
-    result = (((result[:,None] & (1 << np.arange(bits)))) > 0).astype(bool)  # little-endian
+    result = (((result[:,None] & (1 << np.arange(bits)))) > 0).astype(bool)[...,::-1]  # big-endian
     
     return result
 
 # Brute-force solver given some combinations
-def kp_brute_force_combo(profit: np.ndarray, weight: np.ndarray, capacity: int, combinations: np.ndarray):
+def kp_brute_force_combo(profit: np.ndarray, weight: np.ndarray, capacity: int, combinations: np.ndarray | slice):
     """
     Computes the profit and weight of a given combination of items and returns the optimal one.
 
     """
+
+    if isinstance(combinations, slice):
+        combinations = toBitstrings(np.arange(combinations.start, combinations.stop, combinations.step), bits=profit.shape[0])
 
     assert profit.shape[0] == weight.shape[0]
     assert profit.shape[0] == combinations.shape[-1]
     assert profit.shape[0] > 0
     assert capacity > 0
 
-    max_profit = 0
-    max_weight = 0
-    max_combination = np.zeros(profit.shape[0])
+
+    max_profits = np.zeros((1,))
+    max_weights = np.zeros((1,))
+    max_combinations = np.zeros((1, profit.shape[0]))
 
     # Computing the costs and profits
     costs = combinations @ weight
@@ -51,16 +53,17 @@ def kp_brute_force_combo(profit: np.ndarray, weight: np.ndarray, capacity: int, 
     profits = (combinations[mask] @ profit)
     
     if profits.size > 0:
-        max_index = np.argmax(profits)
-        max_profit = profits[max_index]
-        max_weight = costs[mask][max_index]
-        max_combination = combinations[mask][max_index]
-    
-    return {'profit': max_profit, 'cost': max_weight, 'combo': max_combination}
+        max_indices = np.flatnonzero(profits == np.max(profits))
+        max_profits = profits[max_indices]
+        max_weights = costs[mask][max_indices]
+        max_combinations = combinations[mask][max_indices]
+        if len(max_indices) < 2:
+            max_combinations = np.array([max_combinations])
+    return {'profit': max_profits, 'cost': max_weights, 'combo': max_combinations}
 
 
 # Brute-force solver
-def kp_brute_force(profit: np.ndarray, weight: np.ndarray, capacity: int, max_ram: int = 6E+9):
+def kp_brute_force(profit: np.ndarray | list, weight: np.ndarray | list, capacity: int, max_ram: int = 6E+9):
     """
     Computes the profit and weight of all the possible combinations of items and returns the optimal one.
 
@@ -85,6 +88,10 @@ def kp_brute_force(profit: np.ndarray, weight: np.ndarray, capacity: int, max_ra
             - 'combo': the combination of items that achieve the maximum profit.
 
     """
+    if isinstance(profit, list):
+        profit = np.array(profit)
+    if isinstance(weight, list):
+        weight = np.array(weight)
     n = profit.shape[0]
     assert n == weight.shape[0]
     assert n > 0
@@ -92,12 +99,16 @@ def kp_brute_force(profit: np.ndarray, weight: np.ndarray, capacity: int, max_ra
     assert max_ram > 0
 
     n_threads = cpu_count()
-    max_samples = int(max_ram / 2 // (n+8))
+    max_samples = int(max_ram / 2 // (n+8))//40
     n_steps = 2**n // max_samples + 1
 
-    max_profits = np.zeros(n_steps, dtype=int)
-    max_weights = np.zeros(n_steps, dtype=int)
-    max_combinations = np.zeros((n_steps, n), dtype=bool)
+    print(f"Number of threads: {n_threads}")
+    print(f"Max samples: {max_samples}")
+    print(f"Number of steps: {n_steps}")
+
+    max_profits = []#np.zeros(n_steps, dtype=int)
+    max_weights = []#np.zeros(n_steps, dtype=int)
+    max_combinations = []#np.zeros((n_steps, n), dtype=bool)
 
     for i, slice_idx in enumerate(trange(0, 2**n, n_threads*max_samples, disable=False)):
 
@@ -114,11 +125,25 @@ def kp_brute_force(profit: np.ndarray, weight: np.ndarray, capacity: int, max_ra
         pool.close()
         pool.join()
 
+        threads_profits = np.concatenate([result['profit'] for result in results])
+        threads_weights = np.concatenate([result['cost'] for result in results])
+        threads_combinations = np.concatenate([result['combo'] for result in results])
+        threads_sols = np.flatnonzero(threads_profits == np.max(threads_profits))
+
+        max_profits.extend(threads_profits[threads_sols])
+        max_weights.extend(threads_weights[threads_sols])
+        max_combinations.extend(threads_combinations[threads_sols])
+        del threads_profits, threads_weights, threads_combinations, threads_sols, results
+        '''
         max_profits[i*n_threads:i*n_threads+remaining_threads] = [result['profit'] for result in results]
         max_weights[i*n_threads:i*n_threads+remaining_threads] = [result['cost'] for result in results]
         max_combinations[i*n_threads:i*n_threads+remaining_threads] = [result['combo'] for result in results]
+        '''
+    max_profits = np.array(max_profits)
+    max_weights = np.array(max_weights)
+    max_combinations = np.array(max_combinations)
 
-    solution_id = np.argmax(max_profits)
+    solution_id = np.flatnonzero(max_profits == np.max(max_profits))
     
-    return {'profit': max_profits[solution_id], 'cost': max_weights[solution_id], 'combo': np.nonzero(max_combinations[solution_id])[0]}
+    return {'profit': max_profits[solution_id], 'cost': max_weights[solution_id], 'combo': [np.nonzero(max_combinations[solution_id][i])[0] for i in range(len(solution_id))]}
     
