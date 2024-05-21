@@ -61,7 +61,7 @@ def load(dataset : Literal['small', 'medium', 'large'] = 'small', path : str = '
         Set containing all the problems        
     """ 
     full_path = f'{path}/{dataset}'
-    files = os.listdir(full_path)
+    files = sorted(os.listdir(full_path))
 
     # Check on files, if they begin with kp we are almost 
     # sure they are the correct files
