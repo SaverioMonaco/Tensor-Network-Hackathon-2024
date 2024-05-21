@@ -7,7 +7,7 @@ from functools import partial
 #  KP solver: Brute-Force  #
 ############################
 
-def toBitstrings(vector, bits:None | int =None):
+def toBitstrings(vector, bits:None | int =None, big_endian:bool=True):
     """
     Converts an input 1-D vector of integers into an output
     2-D array of bitstrings vectors, with 'bits' number of bits.
@@ -15,13 +15,15 @@ def toBitstrings(vector, bits:None | int =None):
     """
 
     if bits is None:
-        bits = np.ceil(np.log2(np.max(vector))).astype(int)
+        bits = np.floor(np.log2(np.max(vector))).astype(int)+1
     else:
         assert bits > 0
         assert bits >= np.ceil(np.log2(np.max(vector)))
 
     result = np.array(vector)
-    result = (((result[:,None] & (1 << np.arange(bits)))) > 0).astype(bool)[...,::-1]  # big-endian
+    result = (((result[...,None] & (1 << np.arange(bits)))) > 0).astype(bool)
+    if big_endian:
+        result = result[...,::-1]  # big-endian
     
     return result
 
@@ -41,9 +43,9 @@ def kp_brute_force_combo(profit: np.ndarray, weight: np.ndarray, capacity: int, 
     assert capacity > 0
 
 
-    max_profits = np.zeros((1,))
-    max_weights = np.zeros((1,))
-    max_combinations = np.zeros((1, profit.shape[0]))
+    max_profits = np.zeros((1,), dtype=int)
+    max_weights = np.zeros((1,), dtype=int)
+    max_combinations = np.zeros((1, profit.shape[0]), dtype=bool)
 
     # Computing the costs and profits
     costs = combinations @ weight
@@ -139,9 +141,9 @@ def kp_brute_force(profit: np.ndarray | list, weight: np.ndarray | list, capacit
         max_weights[i*n_threads:i*n_threads+remaining_threads] = [result['cost'] for result in results]
         max_combinations[i*n_threads:i*n_threads+remaining_threads] = [result['combo'] for result in results]
         '''
-    max_profits = np.array(max_profits)
-    max_weights = np.array(max_weights)
-    max_combinations = np.array(max_combinations)
+    max_profits = np.stack(max_profits)
+    max_weights = np.stack(max_weights)
+    max_combinations = np.stack(max_combinations)
 
     solution_id = np.flatnonzero(max_profits == np.max(max_profits))
     
