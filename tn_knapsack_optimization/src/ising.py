@@ -4,6 +4,9 @@ import scipy as sp
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from typing import List
 from numpy.typing import NDArray
+from numbers import Number
+
+from . import brute_force, qubo
 
 def qubo_to_hamiltonian(qubo):
     nq = qubo.shape[0]
@@ -85,3 +88,53 @@ def construct_quantum_hamiltonian_scipy(h, J, Cte):
     for (i, j), J_ij in J.items():
         H += J_ij*create_operator_diag([Z,Z], [i,j], n)
     return H 
+
+def diagonalization(problem : dict, lam : Number, verbose : bool = True):
+    if verbose: 
+        print(problem)
+
+    Q = qubo.get_Q(problem['weights'], problem['profits'], problem['C'], lam)
+    
+    if False:
+    # if verbose: 
+        print('Q:')
+        print(f'  shape: {np.shape(Q)}')
+        if np.shape(Q)[0] < 10:
+            print(f'  matrix : \n{Q}')
+ 
+    H = construct_quantum_hamiltonian_qiskit(*qubo_to_hamiltonian(Q))
+
+    # H.apply_layout(range(np.shape(Q)[0] - 1,-1,-1))
+
+    # Really bad way to include Hamiltonians constructed with 
+    # - construct_quantum_hamiltonian_qiskit (SparsePauliOP)
+    # - construct_quantum_hamiltonian_scipy  (SparseArray)
+    try:
+        eigvals = np.real(H.to_matrix(sparse=True).diagonal())
+    except:
+        eigvals = H.data
+
+    lowest_eigval = np.min(eigvals)
+    lowest_idx    = np.argmin(eigvals)
+
+    if verbose:
+        print('\nEigenvalue:')
+        print(f'  {lowest_eigval:.2f} at position {lowest_idx}')
+
+    # bitstring   = np.logical_not(brute_force.toBitstrings([lowest_idx], Q.shape[0])[0]).astype(int)[::-1]
+    bitstring   = np.logical_not(brute_force.toBitstrings(lowest_idx, Q.shape[0])).astype(int)
+    bitstring_x = bitstring[:problem['n']]
+    bitstring_b = bitstring[problem['n']:]
+
+    b = sum([bit*2**alpha for alpha, bit in enumerate(bitstring_b[:-1])])
+    b += (problem['C'] + 1 - 2**(len(bitstring_b)-1))*bitstring_b[-1]
+    total_weight = sum([w*x for w, x in zip(problem["weights"], bitstring_x)])
+    total_profit = sum([p*x for p, x in zip(problem["profits"], bitstring_x)])
+    if verbose: 
+        print('\nBitstrings:')
+        print(f'x : {bitstring_x} : {total_profit}')
+        print(f'C = {problem["C"]} | total weight : {total_weight}')
+        print(f'b : {bitstring_b} : {b}')
+
+    return total_profit, bitstring_x, total_weight
+
