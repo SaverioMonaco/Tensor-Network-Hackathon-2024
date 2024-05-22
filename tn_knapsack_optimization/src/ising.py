@@ -1,8 +1,7 @@
 import numpy as np
-import scipy as sp
 
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from typing import List
+from typing import List, Literal
 from numpy.typing import NDArray
 
 from . import brute_force, qubo
@@ -55,7 +54,7 @@ def construct_quantum_hamiltonian_qiskit(h, J, Cte):
     H = SparsePauliOp(pauli_list, coeffs)
     return H
 
-def construct_quantum_hamiltonian_scipy(h, J, Cte):
+def construct_quantum_hamiltonian_diag(h, J, Cte):
     n = len(h)
 
     # ⚠️ THIS USES BIG ENDIANNESS :)
@@ -89,30 +88,20 @@ def construct_quantum_hamiltonian_scipy(h, J, Cte):
         H += J_ij*create_operator_diag([Z,Z], [i,j], n)
     return H 
 
-def diagonalization(problem : dict, lam : float, verbose : bool = True):
+def diagonalization(problem : dict, lam : float, verbose : bool = True, method : Literal['qiskit', 'diag'] = 'diag'):
     if verbose: 
         print(problem)
 
     Q = qubo.get_Q(problem['weights'], problem['profits'], problem['C'], lam)
-    
-    if False:
-    # if verbose: 
-        print('Q:')
-        print(f'  shape: {np.shape(Q)}')
-        if np.shape(Q)[0] < 10:
-            print(f'  matrix : \n{Q}')
- 
-    H = construct_quantum_hamiltonian_qiskit(*qubo_to_hamiltonian(Q))
 
-    # H.apply_layout(range(np.shape(Q)[0] - 1,-1,-1))
-
-    # Really bad way to include Hamiltonians constructed with 
-    # - construct_quantum_hamiltonian_qiskit (SparsePauliOP)
-    # - construct_quantum_hamiltonian_scipy  (SparseArray)
-    try:
+    if method == 'qiskit':  
+        H = construct_quantum_hamiltonian_qiskit(*qubo_to_hamiltonian(Q))
         eigvals = np.real(H.to_matrix(sparse=True).diagonal())
-    except:
+    elif method == 'diag':
+        H = construct_quantum_hamiltonian_diag(*qubo_to_hamiltonian(Q))
         eigvals = H.data
+    else: 
+        raise NotImplementedError(f'{method} is not a valid method')
 
     lowest_eigval = np.min(eigvals)
     lowest_idx    = np.argmin(eigvals)
