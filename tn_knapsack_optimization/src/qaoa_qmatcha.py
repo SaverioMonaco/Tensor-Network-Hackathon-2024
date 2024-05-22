@@ -7,11 +7,11 @@ Original file is located at
     https://colab.research.google.com/drive/1BLAdPbMtFRhWb0U-KFO5zngADNDHaRcf
 """
 
-!pip install qiskit==0.45.0
+#!pip install qiskit==0.45.0
 
-!pip install qiskit_algorithms
+#!pip install qiskit_algorithms
 
-pip install -U qiskit-aer
+#pip install -U qiskit-aer
 
 from qiskit.circuit.library import TwoLocal, RZZGate, SwapGate
 import numpy as np
@@ -19,6 +19,11 @@ from scipy.optimize import minimize
 import qtealeaves.observables as obs
 from qmatchatea import QCOperators, run_simulation
 from qiskit import QuantumCircuit
+
+import qubo
+import ising
+import data
+
 
 def qaoa_step(theta, ansatz, observables):
     ops = QCOperators()
