@@ -4,7 +4,6 @@ import scipy as sp
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from typing import List
 from numpy.typing import NDArray
-from numbers import Number
 
 from . import brute_force, qubo
 
@@ -89,7 +88,7 @@ def construct_quantum_hamiltonian_scipy(h, J, Cte):
         H += J_ij*create_operator_diag([Z,Z], [i,j], n)
     return H 
 
-def diagonalization(problem : dict, lam : Number, verbose : bool = True):
+def diagonalization(problem : dict, lam : float, verbose : bool = True):
     if verbose: 
         print(problem)
 
