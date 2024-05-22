@@ -8,9 +8,8 @@ H = Cte * 1 + h_k \sigma_k + j_kk' \sigma_k\sigma_k'
 # %%
 import numpy as np 
 from typing import List
-from numbers import Number
 
-def get_Q(weights : List[int], profits : List[int], C : int, l : Number):
+def get_Q(weights : List[int], profits : List[int], C : int, l : float):
     assert len(weights) == len(profits)
     
     N = len(weights) 
@@ -50,7 +49,7 @@ def get_Q(weights : List[int], profits : List[int], C : int, l : Number):
     for n in range(N):
         Q[n, N+M] += - 2*l*K * weights[n]
         Q[N+M, n]  = Q[n, N+M]
-    # ba bM
+    # ba bM 
     for a in range(M):
         Q[N+a, N+M] += 2*l*K * (2**a)
         Q[N+M, N+a]  = Q[N+a, N+M]

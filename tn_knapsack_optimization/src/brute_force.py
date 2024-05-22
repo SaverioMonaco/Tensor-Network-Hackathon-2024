@@ -7,7 +7,7 @@ from functools import partial
 #  KP solver: Brute-Force  #
 ############################
 
-def toBitstrings(vector, bits:None | int =None):
+def toBitstrings(vector, bits: None | int = None):
     """
     Converts an input 1-D vector of integers into an output
     2-D array of bitstrings vectors, with 'bits' number of bits.
@@ -60,7 +60,7 @@ def kp_brute_force_combo(profit: np.ndarray, weight: np.ndarray, capacity: int, 
 
 
 # Brute-force solver
-def kp_brute_force(profit: np.ndarray, weight: np.ndarray, capacity: int, max_ram: int = 6E+9):
+def kp_brute_force(profit: np.ndarray, weight: np.ndarray, capacity: int, max_ram: int = 6e+9): # mypy: ignore
     """
     Computes the profit and weight of all the possible combinations of items and returns the optimal one.
 
