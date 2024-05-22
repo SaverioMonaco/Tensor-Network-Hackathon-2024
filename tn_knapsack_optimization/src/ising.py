@@ -15,7 +15,8 @@ def qubo_to_hamiltonian(qubo):
 
     # generate the h_k and J_k_k' values
     for k in range(nq):
-        h_k_sum = sum(qubo[k, i] for i in range(k + 1, nq))
+        h_k_sum = sum(qubo[k, i] for i in range(0, nq))
+        h_k_sum -= qubo[k,k]
         h[k] = 0.5 * qubo[k, k] + 0.25 * h_k_sum
         for j in range(k + 1, nq):
             J[(k, j)] = 0.25 * qubo[k, j]
