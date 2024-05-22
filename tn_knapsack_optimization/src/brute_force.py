@@ -59,8 +59,8 @@ def kp_brute_force_combo(profit: np.ndarray, weight: np.ndarray, capacity: int, 
         max_profits = profits[max_indices]
         max_weights = costs[mask][max_indices]
         max_combinations = combinations[mask][max_indices]
-        if len(max_indices) < 2:
-            max_combinations = np.array([max_combinations])
+        if max_combinations.ndim < 2:
+            max_combinations = np.expand_dims(max_combinations, 0)
     return {'profit': max_profits, 'cost': max_weights, 'combo': max_combinations}
 
 
