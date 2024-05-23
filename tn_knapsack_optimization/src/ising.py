@@ -4,7 +4,7 @@ from qiskit.quantum_info import Pauli, SparsePauliOp
 from typing import List, Literal
 from numpy.typing import NDArray
 
-from . import brute_force, qubo
+import qubo
 
 def qubo_to_hamiltonian(qubo):
     nq = qubo.shape[0]
