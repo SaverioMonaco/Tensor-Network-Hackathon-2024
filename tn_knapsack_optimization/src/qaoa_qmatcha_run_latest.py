@@ -7,32 +7,25 @@ Original file is located at
     https://colab.research.google.com/drive/1bEhkaMajkOCl4L-Nn-Nhq3G4voxxCMlq
 """
 
-#!pip install qiskit==0.45.0
-
-#!pip install qiskit_algorithms
-
-#pip install -U qiskit-aer
-#!pip uninstall qmatchatea
 
 from qiskit.circuit.library import TwoLocal, RZZGate, SwapGate
 from qiskit.circuit import ParameterVector
 import numpy as np
 from scipy.optimize import minimize
 import qtealeaves.observables as obs
-from qmatchatea import QCOperators, run_simulation
-#, QCConvergenceParameters
+from qmatchatea import QCOperators, run_simulation, QCConvergenceParameters
 from qiskit import QuantumCircuit
 import qubo
 import ising
 import data
 
-def qaoa_step(theta, ansatz, observables):
+def qaoa_step(theta, ansatz, observables, conv_params=None):
     ops = QCOperators()
     ops.ops["Z"] = np.array([[1, 0], [0, -1]])
     # bind the parametric ansatz to the parameters
     binded_ansatz = ansatz.assign_parameters(theta)
     # Run the simulation
-    res = run_simulation(binded_ansatz, observables=observables, operators=ops)
+    res = run_simulation(binded_ansatz, observables=observables, convergence_parameters=conv_params, operators=ops)
 
     return np.real(res.observables["hamiltonian"])
 
@@ -46,7 +39,7 @@ def qaoa_all(Q, h, J, reps=2):
         qc.h(ii)
     for r in range(reps):
         for ii in range(num_qubits):
-            qc.rz(2 * theta[2 * r], ii)
+            qc.rz(2 * theta[2 * r] * h[ii], ii)
 
         for ii in range(num_qubits):
             for jj in range(ii):
@@ -83,19 +76,19 @@ def operators(Q, h, J):
     return pauli_dict_hamiltonian
 
 def main():
-    problems=data.load("small", "./../kp_instances")
+    problems=data.load("small", "../kp_instances")
     problem=problems[0]
     qubo1=qubo.get_Q(problem['weights'], problem['profits'], problem['C'], max(problem['profits'])*1.1)
     h, J, Cte=ising.qubo_to_hamiltonian(qubo1)
-    H = ising.construct_quantum_hamiltonian_qiskit(h, J, Cte)
+    #H = ising.construct_quantum_hamiltonian_qiskit(h, J, Cte)
     pauli_dict_hamiltonian = operators(qubo1, h, J)
     obsv = obs.TNObservables()
     ham = obs.TNObsWeightedSum.from_pauli_string("hamiltonian", pauli_dict_hamiltonian)
     obsv += ham
-    #conv_params = QCConvergenceParameters(max_bond_dimension=100)
-    reps = 14
+    conv_params = QCConvergenceParameters(max_bond_dimension=100)
+    reps = 10
     qc=qaoa_all(qubo1, h, J, reps)
-    qaoa_step_opt = lambda x: qaoa_step(x, qc, obsv)
+    qaoa_step_opt = lambda x: qaoa_step(x, qc, obsv, conv_params)
     np.random.seed(42)
     initial_guess = np.random.normal(np.pi / 2, 0.05, qc.num_parameters)
     initial_energy = qaoa_step_opt(initial_guess)
@@ -108,5 +101,7 @@ def main():
 
 #print(qubo1.shape)
 
-main()
+
+if __name__ == "__main__":
+    main()
 
